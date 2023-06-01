@@ -1,8 +1,15 @@
 # objwrap
 
-*Easy object wrapping for Python.*
+*Easy object wrapping in Python.*
+
+This package enables creation of transparent objects that wrap
+others already in memory. Basically, it offers a more sophisticated
+view over `getattr` that hand
 
 ## :rocket: Quickstart
+First install the latest version of the package 
+with `pip install --upgrade objwrap`.
+
 Define custom classes that wrap object
 attribute getters (including built-in getters
 like `__add__`).
