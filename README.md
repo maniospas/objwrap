@@ -4,15 +4,18 @@
 
 This package enables creation of transparent objects that wrap
 others already in memory. Basically, it offers a more sophisticated
-view over `getattr` that hand
+view over `getattr` that hand-rewires object methods, including
+magic methods (`__add__`, `__len__` etc).
 
 ## :rocket: Quickstart
 First install the latest version of the package 
 with `pip install --upgrade objwrap`.
 
-Define custom classes that wrap object
-attribute getters (including built-in getters
-like `__add__`).
+
+<details>
+<summary>Custom classes to wrap
+attribute getters and magic methods.</summary>
+<br>
 
 ```python
 from objwrap import Wrapper
@@ -27,10 +30,12 @@ print(x+1)
 # Accessing __add__
 # 2
 ```
+</details>
 
-Define wrappers that also transform inputs and outputs of 
-method calls.
 
+<details>
+<summary>Wrappers to transform inputs to method calls.</summary>
+<br>
 
 ```python
 from objwrap import ClosedWrapper, wrapped
@@ -48,9 +53,45 @@ class Notify(ClosedWrapper):
 
 x = Notify(1)
 y = Notify(2)
-z = x + y
+z = x + y  # a Notify object
 print(wrapped(z))
 
 # Calling __add__ on 2 with args [2] and kwargs {}
 # 3
 ```
+</details>
+
+
+
+<details>
+<summary>Wrappers around dicts that call methods for their values.</summary>
+<br>
+
+```python
+from objwrap import ClosedWrapper, wrapped
+from objwrap.closure import Pending
+
+class RunOnValues(ClosedWrapper):
+    def __init__(self, obj):
+        super().__init__(obj)
+        self.symbols = obj.keys()
+    
+    def __unknown__(self, obj, name, args, kwargs):
+        _, args, kwargs = super().__before__(None, args, kwargs)  # convert other instances of RunOnValues to dicts
+        assert isinstance(obj, dict)  # enforce the type
+        pending = dict()
+        for symbol in self.symbols:
+            pending[symbol] = Pending(method=getattr(obj[symbol], name),
+                                      args=[arg[symbol] for arg in args],
+                                      kwargs={k: arg[symbol] for k, arg in kwargs.items()})
+        return pending
+
+x = RunOnValues({"a": 1, "b": 2})
+y = RunOnValues({"a": 10, "b": 20})
+z = x + y
+print(wrapped(z))
+
+# {'a': 11, 'b': 22}
+```
+</details>
+
